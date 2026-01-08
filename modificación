@@ -1,0 +1,2 @@
+--Eliminar la restricción NOT NULL de la columna descripcion
+ALTER TABLE detalle_factura ALTER COLUMN descripcion DROP NOT NULL;
