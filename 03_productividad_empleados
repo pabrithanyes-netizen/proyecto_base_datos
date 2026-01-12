@@ -1,0 +1,18 @@
+SELECT
+    e.id_empleados,
+    e.nombre || ' ' || e.apellido AS empleado,
+    COUNT(f.id_factura) AS numero_ventas,
+    SUM(f.total) AS total_vendido,
+    ROUND(SUM(f.total) / COUNT(f.id_factura), 2) AS ticket_promedio
+FROM bpanchana.empleados e
+JOIN bpanchana.citas c
+    ON e.id_empleados = c.id_empleados
+JOIN bpanchana.cliente cl
+    ON c.id_cliente = cl.id_cliente
+JOIN bpanchana.factura f
+    ON cl.id_cliente = f.id_cliente
+WHERE f.estado = 'PAGADA'
+  AND f.activo = TRUE
+  AND c.estado = TRUE
+GROUP BY e.id_empleados, e.nombre, e.apellido
+ORDER BY total_vendido DESC;
