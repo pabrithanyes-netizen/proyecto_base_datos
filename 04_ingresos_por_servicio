@@ -1,0 +1,23 @@
+WITH ingresos_por_servicio AS (
+    SELECT
+        COALESCE(df.descripcion, 'Sin descripción') AS servicio,
+        SUM(df.subtotal_linea) AS ingreso_servicio
+    FROM bpanchana.detalle_factura df
+    JOIN bpanchana.factura f
+        ON df.id_factura = f.id_factura
+    WHERE f.estado = 'PAGADA'
+      AND f.activo = TRUE
+      AND df.activo = TRUE
+    GROUP BY df.descripcion
+),
+total_ingresos AS (
+    SELECT SUM(ingreso_servicio) AS total
+    FROM ingresos_por_servicio
+)
+SELECT
+    i.servicio,
+    i.ingreso_servicio,
+    ROUND((i.ingreso_servicio / t.total) * 100, 2) AS participacion_porcentual
+FROM ingresos_por_servicio i
+CROSS JOIN total_ingresos t
+ORDER BY i.ingreso_servicio DESC;
