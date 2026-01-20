@@ -1,26 +1,21 @@
-WITH suma_detalle AS (
-    SELECT
-        id_factura,
-        SUM(subtotal_linea) AS total_detalle
-    FROM bpanchana.detalle_factura
-    WHERE activo = TRUE
-    GROUP BY id_factura
-)
-SELECT
-    f.id_factura,
-    f.subtotal,
-    f.impuesto,
-    f.total,
-    sd.total_detalle,
-    (f.subtotal + f.impuesto - f.total) AS diferencia_total,
-    (f.subtotal - sd.total_detalle) AS diferencia_detalle
-FROM bpanchana.factura f
-LEFT JOIN suma_detalle sd
-    ON f.id_factura = sd.id_factura
-WHERE f.estado = 'PAGADA'
-  AND f.activo = TRUE
-  AND (
-        f.subtotal + f.impuesto <> f.total
-        OR f.subtotal <> sd.total_detalle
-      )
-ORDER BY f.id_factura;
+AUDITORÍA DE FACTURAS (INCONSISTENCIAS)
+========================================================= */
+select f.id_factura,
+       f.subtotal,
+       f.impuesto,
+       f.total,
+       (f.subtotal + f.impuesto) as subtotal_mas_impuesto,
+       (f.subtotal + f.impuesto) - f.total as diferencia_total,
+       (select sum(df.subtotal_linea)
+        from bpanchana.detalle_factura df
+        where df.id_factura = f.id_factura) as suma_detalle,
+       f.subtotal -
+       (select sum(df.subtotal_linea)
+        from bpanchana.detalle_factura df
+        where df.id_factura = f.id_factura) as diferencia_detalle
+from bpanchana.factura f
+where (f.subtotal + f.impuesto) <> f.total
+   or f.subtotal <>
+      (select sum(df.subtotal_linea)
+       from bpanchana.detalle_factura df
+       where df.id_factura = f.id_factura);
