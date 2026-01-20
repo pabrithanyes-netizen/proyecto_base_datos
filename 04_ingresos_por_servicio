@@ -1,23 +1,20 @@
-WITH ingresos_por_servicio AS (
-    SELECT
-        COALESCE(df.descripcion, 'Sin descripción') AS servicio,
-        SUM(df.subtotal_linea) AS ingreso_servicio
-    FROM bpanchana.detalle_factura df
-    JOIN bpanchana.factura f
-        ON df.id_factura = f.id_factura
-    WHERE f.estado = 'PAGADA'
-      AND f.activo = TRUE
-      AND df.activo = TRUE
-    GROUP BY df.descripcion
-),
-total_ingresos AS (
-    SELECT SUM(ingreso_servicio) AS total
-    FROM ingresos_por_servicio
+INGRESOS POR TIPO DE SERVICIO Y PARTICIPACIÓN (%)
+========================================================= */
+with ingresos_servicio as (
+    select df.descripcion,
+           sum(df.subtotal_linea) as total_ingresos
+    from bpanchana.detalle_factura df
+         inner join bpanchana.factura f
+         on df.id_factura = f.id_factura
+    where f.estado = 'PAGADA'
+      and f.activo = true
+      and df.activo = true
+    group by df.descripcion
 )
-SELECT
-    i.servicio,
-    i.ingreso_servicio,
-    ROUND((i.ingreso_servicio / t.total) * 100, 2) AS participacion_porcentual
-FROM ingresos_por_servicio i
-CROSS JOIN total_ingresos t
-ORDER BY i.ingreso_servicio DESC;
+select isv.descripcion,
+       isv.total_ingresos,
+       (isv.total_ingresos * 100.0 /
+        (select sum(total_ingresos) from ingresos_servicio)
+       ) as participacion_porcentaje
+from ingresos_servicio isv
+order by isv.total_ingresos desc;
