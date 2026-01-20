@@ -1,18 +1,18 @@
-SELECT
-    e.id_empleados,
-    e.nombre || ' ' || e.apellido AS empleado,
-    COUNT(f.id_factura) AS numero_ventas,
-    SUM(f.total) AS total_vendido,
-    ROUND(SUM(f.total) / COUNT(f.id_factura), 2) AS ticket_promedio
-FROM bpanchana.empleados e
-JOIN bpanchana.citas c
-    ON e.id_empleados = c.id_empleados
-JOIN bpanchana.cliente cl
-    ON c.id_cliente = cl.id_cliente
-JOIN bpanchana.factura f
-    ON cl.id_cliente = f.id_cliente
-WHERE f.estado = 'PAGADA'
-  AND f.activo = TRUE
-  AND c.estado = TRUE
-GROUP BY e.id_empleados, e.nombre, e.apellido
-ORDER BY total_vendido DESC;
+3) PRODUCTIVIDAD POR EMPLEADO
+========================================================= */
+select e.id_empleados,
+       e.nombre,
+       e.apellido,
+       count(f.id_factura) as cantidad_facturas,
+       sum(f.total) as total_vendido,
+       (sum(f.total) / count(f.id_factura)) as ticket_promedio
+from bpanchana.empleados e
+     inner join bpanchana.citas c
+     on e.id_empleados = c.id_empleados
+     inner join bpanchana.factura f
+     on c.id_cliente = f.id_cliente
+where f.estado = 'PAGADA'
+  and f.activo = true
+  and e.estado = true
+group by e.id_empleados, e.nombre, e.apellido
+order by total_vendido desc;
