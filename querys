@@ -1,0 +1,106 @@
+/* =========================================================
+1) TOP 5 CLIENTES POR GASTO TOTAL (PAGADAS Y ACTIVAS)
+========================================================= */
+with gasto_cliente as (
+    select f.id_cliente,
+           sum(f.total) as total_gastado
+    from bpanchana.factura f
+    where f.estado = 'PAGADA'
+      and f.activo = true
+    group by f.id_cliente
+)
+select c.nombre || ' ' || c.apellido as nombre_completo,
+       c.correo,
+       gc.total_gastado
+from gasto_cliente gc
+     inner join bpanchana.cliente c
+     on gc.id_cliente = c.id_cliente
+order by gc.total_gastado desc
+limit 5;
+
+
+/* =========================================================
+2) SERVICIOS / VEHÍCULOS MÁS VENDIDOS
+   (CANTIDAD, MONTO Y RANKING)
+========================================================= */
+select df.descripcion,
+       sum(df.cantidad) as cantidad_vendida,
+       sum(df.subtotal_linea) as monto_total,
+       rank() over (order by sum(df.cantidad) desc) as ranking_cantidad,
+       rank() over (order by sum(df.subtotal_linea) desc) as ranking_monto
+from bpanchana.detalle_factura df
+     inner join bpanchana.factura f
+     on df.id_factura = f.id_factura
+where f.estado = 'PAGADA'
+  and f.activo = true
+  and df.activo = true
+group by df.descripcion
+order by cantidad_vendida desc;
+
+
+/* =========================================================
+3) PRODUCTIVIDAD POR EMPLEADO
+========================================================= */
+select e.id_empleados,
+       e.nombre,
+       e.apellido,
+       count(f.id_factura) as cantidad_facturas,
+       sum(f.total) as total_vendido,
+       (sum(f.total) / count(f.id_factura)) as ticket_promedio
+from bpanchana.empleados e
+     inner join bpanchana.citas c
+     on e.id_empleados = c.id_empleados
+     inner join bpanchana.factura f
+     on c.id_cliente = f.id_cliente
+where f.estado = 'PAGADA'
+  and f.activo = true
+  and e.estado = true
+group by e.id_empleados, e.nombre, e.apellido
+order by total_vendido desc;
+
+
+/* =========================================================
+4) INGRESOS POR TIPO DE SERVICIO Y PARTICIPACIÓN (%)
+========================================================= */
+with ingresos_servicio as (
+    select df.descripcion,
+           sum(df.subtotal_linea) as total_ingresos
+    from bpanchana.detalle_factura df
+         inner join bpanchana.factura f
+         on df.id_factura = f.id_factura
+    where f.estado = 'PAGADA'
+      and f.activo = true
+      and df.activo = true
+    group by df.descripcion
+)
+select isv.descripcion,
+       isv.total_ingresos,
+       (isv.total_ingresos * 100.0 /
+        (select sum(total_ingresos) from ingresos_servicio)
+       ) as participacion_porcentaje
+from ingresos_servicio isv
+order by isv.total_ingresos desc;
+
+
+/* =========================================================
+5) AUDITORÍA DE FACTURAS (INCONSISTENCIAS)
+========================================================= */
+select f.id_factura,
+       f.subtotal,
+       f.impuesto,
+       f.total,
+       (f.subtotal + f.impuesto) as subtotal_mas_impuesto,
+       (f.subtotal + f.impuesto) - f.total as diferencia_total,
+       (select sum(df.subtotal_linea)
+        from bpanchana.detalle_factura df
+        where df.id_factura = f.id_factura) as suma_detalle,
+       f.subtotal -
+       (select sum(df.subtotal_linea)
+        from bpanchana.detalle_factura df
+        where df.id_factura = f.id_factura) as diferencia_detalle
+from bpanchana.factura f
+where (f.subtotal + f.impuesto) <> f.total
+   or f.subtotal <>
+      (select sum(df.subtotal_linea)
+       from bpanchana.detalle_factura df
+       where df.id_factura = f.id_factura);
