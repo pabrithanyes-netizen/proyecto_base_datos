@@ -1,14 +1,16 @@
-SELECT
-    COALESCE(df.descripcion, 'Sin descripción') AS servicio,
-    SUM(df.cantidad) AS cantidad_vendida,
-    SUM(df.subtotal_linea) AS monto_total,
-    RANK() OVER (ORDER BY SUM(df.cantidad) DESC) AS ranking_por_cantidad,
-    RANK() OVER (ORDER BY SUM(df.subtotal_linea) DESC) AS ranking_por_monto
-FROM bpanchana.detalle_factura df
-JOIN bpanchana.factura f
-    ON df.id_factura = f.id_factura
-WHERE f.estado = 'PAGADA'
-  AND f.activo = TRUE
-  AND df.activo = TRUE
-GROUP BY df.descripcion
-ORDER BY monto_total DESC;
+2) SERVICIOS / VEHÍCULOS MÁS VENDIDOS
+   (CANTIDAD, MONTO Y RANKING)
+========================================================= */
+select df.descripcion,
+       sum(df.cantidad) as cantidad_vendida,
+       sum(df.subtotal_linea) as monto_total,
+       rank() over (order by sum(df.cantidad) desc) as ranking_cantidad,
+       rank() over (order by sum(df.subtotal_linea) desc) as ranking_monto
+from bpanchana.detalle_factura df
+     inner join bpanchana.factura f
+     on df.id_factura = f.id_factura
+where f.estado = 'PAGADA'
+  and f.activo = true
+  and df.activo = true
+group by df.descripcion
+order by cantidad_vendida desc;
